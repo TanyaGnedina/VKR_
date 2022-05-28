@@ -1,0 +1,75 @@
+---
+title: "Untitled"
+output: html_document
+date: '2022-05-26'
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE)
+```
+
+
+```{r}
+library(tidyverse)
+theme_set(theme_bw())
+```
+
+```{r}
+read_csv2("/Users/tatanagnedina/Downloads/cognate+comments_2.csv") %>% 
+  filter(str_detect(Is_cognate, "cognate")) ->
+  df
+
+df %>% 
+  count(comments1, sort = TRUE)
+
+df %>% 
+  count(comments2, sort = TRUE)
+
+df %>% 
+  count(comments3, sort = TRUE)
+```
+
+
+```{r}
+df %>% 
+  mutate(across(.cols = comments1:comments3, function(x) ifelse(is.na(x), "", x)),
+         tags = str_c(comments1, "___", comments2, "___", comments3)) %>% 
+  select(-comments1, -comments2, -comments3) %>% 
+    mutate(tags = str_split(tags, "___")) %>% 
+  unnest_longer(tags) %>% 
+  mutate(lemma_1 = str_replace_all(lemma_1, "-['ˌ]", "-"),
+         lemma_2 = str_replace_all(lemma_2, "-['ˌ]", "-"),
+         tags = ifelse(lemma_1 == lemma_2, "same", tags)) %>%
+  filter(tags != "add",
+         tags != "") ->
+  tags
+
+tags %>% 
+  count(tags, sort = TRUE)
+```
+
+
+```{r}
+tags %>% 
+  count(tags, language_1, language_2) %>%
+  mutate(tags = factor(tags, levels = c(
+                                        "add_consonant_before_first_vowel", 
+                                        "nasal", 
+                                        "open2close", 
+                                        "add_syllable", 
+                                        "small_modification",
+                                        "same"))) %>% 
+  ggplot(aes(n, tags))+
+  geom_col()+
+  facet_grid(language_1~language_2, scales = "free")+
+  theme(strip.text = element_text(size = 4))+
+  labs(y = "")
+
+
+
+cc <- tags %>% 
+  count(tags, language_1, language_2)
+```
+
